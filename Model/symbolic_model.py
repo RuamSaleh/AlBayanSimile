@@ -179,16 +179,25 @@ def symbolic_detector(sentence):
     return ev
 def extract_symbolic_features(sentence):
     ev = symbolic_detector(sentence)
+    words = tokenize(sentence)
 
     has_structure = 1 if len(ev.structures) > 0 else 0
     num_structures = len(ev.structures)
+
     max_conf = ev.confidence
+
+    # NEW: average confidence
+    avg_conf = 0.0
+    if ev.structures:
+        avg_conf = sum(s.confidence for s in ev.structures) / len(ev.structures)
 
     has_strong_particle = 0
     has_weak_particle = 0
     has_verb = 0
     has_noun = 0
     has_prefix = 0
+
+    distances = []
 
     for s in ev.structures:
         if s.rule == "explicit_particle":
@@ -202,15 +211,32 @@ def extract_symbolic_features(sentence):
         elif s.rule == "prefix_simile":
             has_prefix = 1
 
+        # NEW: distance between subject and object
+        if s.subject and s.object:
+            try:
+                i = words.index(s.subject)
+                j = words.index(s.object)
+                distances.append(abs(i - j))
+            except:
+                continue
+
+    avg_distance = sum(distances) / len(distances) if distances else 0.0
+
+    # NEW: complexity flag
+    multi_simile_flag = 1 if num_structures > 1 else 0
+
     return [
         has_structure,
         num_structures,
         max_conf,
+        avg_conf,
         has_strong_particle,
         has_weak_particle,
         has_verb,
         has_noun,
-        has_prefix
+        has_prefix,
+        avg_distance,
+        multi_simile_flag
     ]
 def build_symbolic_matrix(sentences):
     features = [extract_symbolic_features(s) for s in sentences]
