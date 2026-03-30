@@ -238,6 +238,6 @@ def extract_symbolic_features(sentence):
         avg_distance,
         multi_simile_flag
     ]
-def build_symbolic_matrix(sentences):
-    features = [extract_symbolic_features(s) for s in sentences]
+def build_symbolic_matrix(text):
+    features = [extract_symbolic_features(s) for s in text]
     return np.array(features, dtype=np.float32)
