@@ -16,7 +16,7 @@ def tokenize(text):
 
 def is_probable_noun(word):
     return word.startswith("ال") or word.endswith("ة") or len(word) > 3
-
+# نحتاج نعدل
 def has_prefix(word):
     return word.startswith("ك") and len(word) > 2
 
@@ -51,6 +51,7 @@ def detect_particle_patterns(words):
                         subject=left,
                         particle=w,
                         object=right,
+                        # , نحسن طريقه حساب الثقه
                         confidence=0.9,
                         rule="explicit_particle"
                     )
@@ -148,7 +149,6 @@ def has_false_context(sentence):
 def symbolic_detector(sentence):
     words = tokenize(sentence)
     ev = Evidence()
-
     if any(bad in sentence for bad in FALSE_CONTEXT):
         return ev
 
@@ -240,3 +240,19 @@ def extract_symbolic_features(sentence):
 def build_symbolic_matrix(text):
     features = [extract_symbolic_features(s) for s in text]
     return np.array(features, dtype=np.float32)
+# 2) كود الجديد (الإخراج)
+def show_result(sentence):
+    result = symbolic_detector(sentence)
+
+    if not result.structures:
+        print("Sentence:", sentence)
+        print("No simile detected")
+        return
+
+    for s in result.structures:
+        print("Sentence:", sentence)
+        print("المشبه:", s.subject)
+        print("الأداة:", s.particle)
+        print("المشبه به:", s.object)
+        print("Confidence:", s.confidence)
+        print("-" * 30)
