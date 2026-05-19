@@ -109,34 +109,43 @@ class Evidence:
         self.confidence = 0.0
 
 # LEARN CONFIDENCE FROM DATA
+
 def learn_rule_confidence(texts, labels):
 
+# Store rule statistics:
+    # TP = rule detected in a true simile sentence
+    # FP = rule detected in a non-simile sentence
     stats = defaultdict(
         lambda: {
             "TP": 0,
             "FP": 0
         }
     )
-
+    # Process each sentence and examine detected
+    # symbolic simile structures
     for sentence, label in zip(texts, labels):
-
+        # Run symbolic grammar detector
         result = symbolic_detector(sentence)
-
+        # Update performance counts for each rule
         for s in result.structures:
-
+            
+            # Rule fired in a real simile → True Positive
             if label == 1:
                 stats[s.rule]["TP"] += 1
-
+            # Rule fired incorrectly → False Positive
             else:
                 stats[s.rule]["FP"] += 1
-
+# Convert raw counts into learned confidence scores
     learned_confidence = {}
 
     for rule, values in stats.items():
 
         tp = values["TP"]
         fp = values["FP"]
-
+        # Precision estimates how trustworthy
+        # the rule is:
+        # precision = TP / (TP + FP)
+        # Higher precision = stronger symbolic evidence
         precision = tp / (tp + fp + 1e-8)
 
         learned_confidence[rule] = round(
