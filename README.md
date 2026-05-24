@@ -1,153 +1,227 @@
-# AlBayanSimile
-# Hybrid Arabic Simile Detection using Symbolic Rules + AraBERT Attention Mining
+# Hybrid Neuro-Symbolic Arabic Simile Detection
+## Overview
 
-This project introduces a **hybrid AI system for Arabic simile detection** that combines:
+This project implements a hybrid system for detecting similes in Arabic text. It combines:
 
-- 🧠 Symbolic linguistic rules (interpretable grammar detection)
-- 🤖 AraBERT transformer representations (deep contextual learning)
-- 🔍 Attention-based neural rule mining (discovering linguistic patterns from the model itself)
+- A **symbolic rule-based detector** for explicit linguistic patterns
+- A **transformer-based model (AraBERTv2)** for contextual representation
+- A **neural attention mining module** to extract interpretable lexical signals
+- A **fusion model** that combines symbolic and neural outputs
 
-The goal is to build a system that is not only accurate, but also **explainable and linguistically grounded**.
-
----
-
-## 🚀 Key Idea
-
-Instead of relying only on a neural model or only handcrafted rules, this system merges both:
-
-> Symbolic reasoning = interpretability  
-> Neural learning = generalization  
-
-The result is a **hybrid interpretable NLP classifier** for Arabic similes.
+The goal is to improve both **classification performance and interpretability** in Arabic rhetorical analysis.
 
 ---
 
-## 🧠 System Architecture
+## Task Definition
 
-The pipeline consists of four main layers:
+Given an Arabic sentence, the system performs:
 
-### 1. Symbolic Layer (Rule-Based Engine)
-Detects similes using handcrafted Arabic linguistic rules:
+1. **Binary classification**
+   - Detect whether the sentence contains a simile or not
 
-- Explicit particles: (كأن، كأنما)
-- Weak particles: (كما، مثل، كـ)
-- Verbs: (يشبه، يماثل، يحاكي)
-- Nominal patterns: (شبيه، مثيل)
+2. **Structure extraction (symbolic layer)**
+   - Identify:
+     - Subject (المشبّه)
+     - Particle (أداة التشبيه)
+     - Object (المشبّه به)
+
+3. **Explainability**
+   - Provide symbolic rules and neural attention evidence supporting the prediction
+
+---
+## Dataset
+
+The dataset used in this project is an Arabic simile dataset designed for binary classification (simile vs non-simile).
+
+The final data split is:
+
+- Training set: 6,000 samples  
+- Validation set: 1,108 samples  
+- Test set: 3,000 samples  
+
+The dataset contains a mixture of:
+
+- Short social media-style sentences  
+- Medium-length natural language sentences  
+- Linguistically diverse Arabic expressions involving simile structures  
+
+This variability requires robust preprocessing and contextual modeling to handle differences in sentence length and structure.
+---
+
+## Preprocessing
+
+Arabic text is normalized before training using the following steps:
+
+- Remove diacritics
+- Normalize Alef variants (آ, أ, إ → ا)
+- Normalize Teh Marbuta (ة → ه)
+- Normalize Alef Maksura (ى → ي)
+- Remove punctuation
+- Collapse repeated whitespace
+- Trim text
+
+This follows standard Arabic NLP preprocessing pipelines used in transformer-based systems.
+
+---
+
+## Model Architecture
+
+### 1. Symbolic Module
+
+A rule-based system that detects simile structures using:
+
+- Strong particles: كأن، كأنما
+- Weak particles: كما، مثل، كـ
+- Verbs: يشبه، يماثل، يحاكي
+- Nouns: شبيه، مثيل، نظير
+- Prefix patterns: كـ + noun
 
 Outputs:
-- Structured simile components (subject / particle / object)
-- Rule confidence scores
+- Extracted structures
+- Rule-based confidence scores
+- Probabilistic fusion over multiple rules
 
 ---
 
-### 2. Neural Layer (AraBERT)
-Uses **aubmindlab/bert-large-arabertv02**:
+### 2. Neural Module (AraBERTv2)
 
-- Extracts contextual embeddings
-- Produces classification probability
-- Provides attention maps for interpretability
-
----
-
-### 3. Attention Mining Layer
-This is the core research contribution.
-
-We analyze AraBERT attention weights to:
-
-- Identify tokens strongly associated with similes
-- Compute likelihood ratios between simile vs non-simile contexts
-- Extract **discriminative linguistic signals automatically**
+- Base model: `aubmindlab/bert-large-arabertv02`
+- 110M parameter transformer
+- Fine-tuned for binary classification
 
 Outputs:
-- Neural rule set (data-driven lexical indicators)
+- Sentence-level classification probability
+- CLS embedding representation
+- Attention weights (used for analysis)
 
 ---
 
-### 4. Hybrid Fusion Layer
+### 3. Neural Attention Feature Mining
+
+Attention maps are used to derive interpretable features:
+
+- **Attention to discriminative tokens**
+  - Measures focus on tokens statistically associated with similes
+
+- **Attention entropy**
+  - Measures uncertainty / dispersion of attention
+
+- **Positional bias**
+  - Measures whether attention is focused on early or late tokens
+
+Additionally, high-attention tokens are used to derive **likelihood-based lexical rules**.
+
+---
+
+### 4. Symbolic Feature Representation
+
+Each sentence is converted into an 11-dimensional vector:
+
+- Presence of simile structure
+- Number of detected structures
+- Maximum rule confidence
+- Average rule confidence
+- Rule-type indicators (particle, verb, noun, prefix)
+- Average distance between subject and object
+- Multi-simile flag
+
+---
+
+### 5. Hybrid Fusion Model
+
 Final prediction is computed as:
 
-- Weighted combination of:
-  - Neural probability (AraBERT head)
-  - Symbolic score (rule-based engine)
+Final Score =
+α × (AraBERT probability)
+(1 − α) × (Symbolic score)
 
-This creates a balance between:
-- Generalization (BERT)
-- Interpretability (rules)
 
----
-
-## 📊 Dataset
-
-- Arabic simile dataset
-- Train: 6000 samples
-- Validation: 1108 samples
-- Test: 3000 samples
+Where:
+- α = 0.7 (default)
+- Symbolic score comes from rule-based detector
 
 ---
 
-## ⚙️ Feature Engineering
+## Training Strategy
 
-Each sentence is represented using:
+### Phase 1: Frozen Transformer
+- AraBERT frozen
+- Train classification head only
+- Learning rate: 1e-4
 
-### Symbolic Features (11D)
-- Presence of simile structures
-- Rule types activated
-- Confidence scores
-- Token distance metrics
-- Multi-simile detection
+### Phase 2: Fine-tuning
+- Unfreeze AraBERT
+- Fine-tune full model
+- Learning rate: 2e-6
 
-### Neural Attention Features (3D)
-- Attention to discriminative tokens
-- Attention entropy (uncertainty)
-- Positional bias (early vs late focus)
-
-Final vector: **14-dimensional hybrid representation**
+Early stopping is applied based on validation loss.
 
 ---
 
-## 📈 Results
+## Evaluation
 
-### Symbolic Model Only
+### Symbolic baseline
 - Accuracy: ~0.76
-- Strong interpretability but limited coverage
+- Strong interpretability
+- Limited generalization
 
-### Full Hybrid Model
-- Validation Accuracy: **~0.94**
-- Test Accuracy: **~0.76 (real-world generalization gap)**
-- Significant improvement in structured understanding
+### Hybrid model
+- Validation accuracy: ~0.94
+- Test accuracy: ~0.76
+- Improved robustness over symbolic-only system
 
 ---
 
-## 🔍 Explainability
+## Explainability
 
-The system provides full interpretability:
+Each prediction includes:
 
-Example:
-Sentence: الولد يشبه الشمس في إشراقته
-[Symbolic Layer]
-Rule detected: verb_simile
-Confidence: 0.927
-[Neural Layer]
-Attention focuses on: "يشبه", "في"
-[Final Decision]
-Simile: YES (0.87)
+### 1. Symbolic explanation
+- Detected rule(s)
+- Extracted simile components
+- Rule confidence
 
-## 💡 Key Contributions
-This project contributes:
-1. Hybrid NLP Architecture
-Combines symbolic rules with transformer learning.
-2. Attention-Based Rule Mining
-Extracts linguistic patterns directly from model attention.
-3. Explainable Arabic NLP System
-Every prediction is interpretable at:
-grammar level
-neural level
-hybrid decision level
-## 📌 Why this matters
-Most NLP systems are:
-Either accurate but black-box (BERT)
-Or interpretable but weak (rules)
-This system bridges both worlds.
+### 2. Neural explanation
+- Top-attended tokens
+- Attention entropy
+- Positional bias
 
-## 👩‍💻 Author
-Built by a Computer Science researchers
+### 3. Hybrid decision
+- AraBERT probability
+- Symbolic probability
+- Final fused score
+
+---
+
+## Key Components
+
+- `symbolic_detector(sentence)` → rule-based detection
+- `build_symbolic_matrix(texts)` → symbolic feature extraction
+- `extract_attention_patterns()` → CLS attention extraction
+- `mine_neural_rules()` → attention-based lexical mining
+- `HybridAraBERT` → fusion classifier
+- `explain_prediction(sentence)` → full explainability pipeline
+
+---
+
+## Saved Artifacts
+
+- `saved_model/` → trained hybrid model
+- `discriminative_tokens.json` → learned neural lexical rules
+- `*_cls_attn.npy` → cached attention matrices
+
+---
+
+## Related Work
+This system is aligned with Arabic NLP shared-task research on:
+- Arabic rhetorical device detection
+- Transformer-based classification models (AraBERT, MARBERT)
+- Neuro-symbolic reasoning systems
+- Explainable NLP for low-resource languages
+
+---
+## Requirements
+
+```bash
+pip install tensorflow transformers arabert-preprocess
+pip install scikit-learn pandas numpy matplotlib pyarabic 
