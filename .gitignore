@@ -1,0 +1,15 @@
+Model/
+*.zip
+*.h5
+*.bin
+*.pt
+*.pth
+*.ckpt
+*.pkl
+*.npy
+
+__pycache__/
+.ipynb_checkpoints/
+.DS_Store
+.venv/
+.vscode/
