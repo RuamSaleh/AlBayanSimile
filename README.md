@@ -220,6 +220,13 @@ This system is aligned with Arabic NLP shared-task research on:
 - Explainable NLP for low-resource languages
 
 ---
+## Baseline Model
+
+For comparison, we used an AraBERT-based baseline model developed separately:
+
+- AraBERT Baseline: https://github.com/arwghm/Al-Bayan-Baseline-Model
+
+The baseline uses AraBERT for Arabic simile classification without the neuro-symbolic reasoning layer implemented in AlBayan.
 ## Requirements
 
 ```bash
